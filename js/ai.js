@@ -6,9 +6,53 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  // 앞에서부터 차례로 시도하고, 안 되면 다음 모델로 넘어감
-  const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"];
-  const API = "https://generativelanguage.googleapis.com/v1beta/models/";
+  // 먼저 시도할 모델 (최신 순). 키로 쓸 수 있는 모델 목록을 받아서 자동으로 보충한다.
+  const PREFERRED = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const API = "https://generativelanguage.googleapis.com/v1beta/models";
+  const SKIP = /image|tts|live|audio|embedding|vision|aqa|native|robotics|computer|learnlm|gemma/i;
+  const modelCache = {};
+
+  // 숫자 버전 비교용: gemini-3.8-flash → 3.8
+  const ver = (n) => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [0, 0])[1]);
+
+  async function modelOrder(key) {
+    if (modelCache[key]) return modelCache[key];
+    let available = null;
+    try {
+      const res = await fetch(API + "?pageSize=1000", { headers: { "x-goog-api-key": key } });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 400 && /API key not valid|API_KEY_INVALID/i.test(data.error?.message || "")) {
+        throw new Error("API 키가 올바르지 않아요. 설정에서 키를 다시 확인해 주세요.");
+      }
+      if (res.ok && data.models) {
+        available = data.models
+          .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+          .map((m) => m.name.replace("models/", ""))
+          .filter((n) => n.startsWith("gemini-") && !SKIP.test(n));
+      }
+    } catch (e) {
+      if (/API 키/.test(e.message)) throw e;
+    }
+    let order;
+    if (available && available.length) {
+      const first = PREFERRED.filter((n) => available.includes(n));
+      // 나머지: flash → pro 순, 최신 버전 먼저, 미리보기(preview/exp)는 뒤로
+      const rest = available
+        .filter((n) => !first.includes(n))
+        .sort((x, y) => {
+          const px = /preview|exp/.test(x), py = /preview|exp/.test(y);
+          if (px !== py) return px ? 1 : -1;
+          const fx = /flash/.test(x), fy = /flash/.test(y);
+          if (fx !== fy) return fx ? -1 : 1;
+          return ver(y) - ver(x);
+        });
+      order = first.concat(rest).slice(0, 8);
+    } else {
+      order = PREFERRED.slice();
+    }
+    modelCache[key] = order;
+    return order;
+  }
 
   function buildPrompt(m) {
     const body = m.paragraphs.map((p, i) => `[단락 ${i + 1} · ${p.time}] ${p.text}`).join("\n");
@@ -55,35 +99,40 @@ ${body}`;
   }
 
   async function callGemini(prompt, key) {
-    let lastErr = "";
-    for (const model of MODELS) {
-      const gen = { temperature: 0.4, maxOutputTokens: 8192 };
+    const models = await modelOrder(key);
+    const errors = [];
+    for (const model of models) {
+      const gen = { temperature: 0.4, maxOutputTokens: 16384 };
       if (model.startsWith("gemini-2.5")) gen.thinkingConfig = { thinkingBudget: 0 };
       let res, data;
       try {
-        res = await fetch(API + model + ":generateContent", {
+        res = await fetch(API + "/" + model + ":generateContent", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-goog-api-key": key },
           body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: gen }),
         });
         data = await res.json().catch(() => ({}));
       } catch (e) {
-        lastErr = "인터넷 연결을 확인해 주세요.";
+        errors.push(model + ": 인터넷 연결 문제");
         continue;
       }
       if (res.ok) {
-        const text = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
+        const parts = data.candidates?.[0]?.content?.parts || [];
+        const text = parts.filter((p) => !p.thought).map((p) => p.text || "").join("").trim();
         if (text) return { text, model };
-        lastErr = "요약 결과가 비어 있어요.";
+        errors.push(model + ": 결과가 비어 있음");
         continue;
       }
       const msg = data.error?.message || "";
-      // 키 자체가 틀리면 다른 모델로 넘어가도 소용없음
       if (res.status === 400 && /API key not valid|API_KEY_INVALID/i.test(msg)) throw new Error("API 키가 올바르지 않아요. 설정에서 키를 다시 확인해 주세요.");
-      if (res.status === 403) throw new Error("이 API 키로는 Gemini를 쓸 수 없어요. 설정에서 키를 확인해 주세요.");
-      lastErr = `${model}: ${res.status} ${msg.slice(0, 80)}`;
+      if (res.status === 403) throw new Error("이 API 키로는 Gemini를 쓸 수 없어요. 설정에서 키를 확인해 주세요.\n(" + msg.slice(0, 120) + ")");
+      errors.push(`${model}: ${res.status} ${msg.slice(0, 120)}`);
     }
-    throw new Error("모든 모델에서 요약에 실패했어요.\n" + lastErr);
+    delete modelCache[key]; // 다음에는 목록을 새로 받아옴
+    const hint = errors.some((e) => /: 429/.test(e))
+      ? "\n\n사용량 한도에 걸렸어요. 잠시 뒤 다시 하거나, AI Studio에서 결제 계정을 연결해 주세요."
+      : "";
+    throw new Error("요약하지 못했어요. 첫 번째 원인:\n" + (errors[0] || "알 수 없음") + `\n(시도한 모델 ${errors.length}개)` + hint);
   }
 
   // ---------- 요약 중 표시 ----------
