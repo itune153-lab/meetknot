@@ -20,6 +20,7 @@
     notes: () => MK.showNotes && MK.showNotes(),
     ai: () => MK.showSummaries && MK.showSummaries(),
     setting: () => MK.showSetting && MK.showSetting(),
+    pdf: () => MK.showPdfs && MK.showPdfs(),
   };
 
   const PITCH =
@@ -135,7 +136,7 @@
   window.addEventListener("popstate", () => {
     const stay = () => history.pushState({ mk: "app" }, "");
     if (document.getElementById("splash")) return stay();                 // 시작 화면 중
-    if (isOpen("modal") || isOpen("aiBusy")) return stay();               // 질문 창 · 요약 중
+    if (isOpen("modal") || isOpen("aiBusy") || isOpen("pdfBusy")) return stay();               // 질문 창 · 요약 중
     if (current === "meeting" && window.meetRec && window.meetRec.want) { // 녹음 중
       window.meetSetStatus && window.meetSetStatus("녹음 중이에요. 녹음을 먼저 멈춰주세요.", true);
       MK.toast("녹음을 먼저 멈춰주세요");

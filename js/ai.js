@@ -256,6 +256,10 @@ ${body}`;
       <h2 class="d-title">${esc(s.title)}</h2>
       <div class="d-sub">${MK.fmtDate(s.date)} · ${esc(s.model)}로 요약</div>
       <div class="d-text sum-text">${esc(s.text)}</div>`;
+    const meetingOf = () => MK.meetings().find((x) => x.id === s.meetingId) ||
+      { id: s.meetingId, title: s.title, date: s.date, place: "", attendees: [], agenda: "", paragraphs: [] };
+    d.querySelector(".d-pdf").onclick = () => MK.makePdf("summary", meetingOf(), s);
+    d.querySelector(".d-share").onclick = () => MK.shareText(s.title + " — AI 요약", s.text);
     d.querySelector(".d-copy").onclick = async () => {
       try { await navigator.clipboard.writeText(s.title + "\n\n" + s.text); MK.ask("복사했어요", "요약본을 복사했어요. 원하는 곳에 붙여넣으세요.", [{ label: "확인", value: 1, main: true }]); }
       catch (e) { MK.ask("복사하지 못했어요", "글을 길게 눌러 직접 복사해 주세요.", [{ label: "확인", value: 1, main: true }]); }

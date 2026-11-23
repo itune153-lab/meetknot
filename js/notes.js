@@ -43,6 +43,20 @@
       ${m.paragraphs.map((p, i) => `<div class="d-para"><span>${i + 1}. ${p.time}</span>${esc(p.text)}</div>`).join("")}
     `;
     d.querySelector(".d-ai").onclick = () => MK.summarize(m);
+    d.querySelector(".d-pdf").onclick = async () => {
+      // 이 회의의 요약본이 있으면 같이 넣을지 물어봄
+      const sum = MK.summaries().find((x) => x.meetingId === m.id);
+      let withSum = null;
+      if (sum) {
+        const c = await MK.ask("PDF 만들기", "이 회의의 AI 요약본이 있어요. PDF에 같이 넣을까요?", [
+          { label: "회의록만", value: "no" },
+          { label: "요약 + 회의록", value: "yes", main: true },
+        ]);
+        if (c === "yes") withSum = sum;
+      }
+      MK.makePdf("meeting", m, withSum);
+    };
+    d.querySelector(".d-share").onclick = () => MK.shareText(m.title, MK.meetingText(m));
     d.querySelector(".d-del").onclick = async () => {
       const ok = await MK.ask("회의 삭제", `"${m.title}"을(를) 삭제할까요?\n삭제하면 되돌릴 수 없어요.`, [
         { label: "취소", value: false },
