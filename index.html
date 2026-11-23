@@ -14,6 +14,15 @@
   <!-- 페이지 바뀔 때 가운데 번쩍 아이콘 -->
   <div id="flash" class="hidden"><img alt="" /></div>
 
+  <!-- 질문 창 -->
+  <div id="modal" class="modal hidden">
+    <div class="m-box">
+      <div class="m-title"></div>
+      <div class="m-msg"></div>
+      <div class="m-btns"></div>
+    </div>
+  </div>
+
   <div id="app">
     <!-- 카카오톡 등 앱 안 브라우저 안내 -->
     <div id="inapp" class="banner hidden">
@@ -46,13 +55,39 @@
       </div>
     </section>
 
-    <!-- ③ 회의 화면 (1단계에서 만든 녹음 화면) -->
+    <!-- ③ 회의준비 화면 -->
+    <section id="page-prep" class="view hidden">
+      <main class="page">
+        <section class="meta">
+          <input id="pTitle" class="title" type="text" placeholder="회의 제목 입력 (비우면 날짜·시간)" />
+          <div id="pNow" class="now"></div>
+        </section>
+        <label class="row"><span>회의 장소</span><input id="pPlace" type="text" placeholder="회의 장소 입력" /></label>
+        <div>
+          <div class="lbl">참석자 선택</div>
+          <div id="pPeople" class="chips"></div>
+        </div>
+        <div class="card">
+          <div class="box-label">안건 / 소제목</div>
+          <textarea id="pAgenda" rows="6" placeholder="오늘의 회의 안건&#10;1.&#10;2.&#10;3."></textarea>
+        </div>
+        <button id="pStart" class="start-btn" aria-label="회의 시작">
+          <img src="img/ICON_MEETING.png" alt="" />
+          <span>눌러서 회의 시작</span>
+        </button>
+      </main>
+    </section>
+
+    <!-- ④ 본 회의 화면 -->
     <section id="page-meeting" class="view hidden">
       <main class="page">
         <section class="meta">
           <input id="title" class="title" type="text" placeholder="회의 제목 입력" />
           <div id="now" class="now"></div>
+          <div id="mInfo" class="now"></div>
         </section>
+
+        <div id="mAgendaBox" class="agenda-mini hidden"><b>안건</b><div id="mAgenda"></div></div>
 
         <section class="rec-area">
           <div class="rec-left">
@@ -69,6 +104,7 @@
         </section>
 
         <div id="status" class="status"></div>
+        <div id="diag" class="diag"></div>
 
         <section class="block">
           <div class="bar">단락 저장 (<span id="count">0</span>개)</div>
@@ -82,11 +118,26 @@
             <button id="addDirect" class="btn">단락 추가</button>
           </div>
         </section>
+
+        <button id="saveMeeting" class="save-btn">회의 저장하고 마치기</button>
       </main>
     </section>
 
-    <!-- ④ 아직 만들지 않은 화면들 -->
-    <section id="page-notes" class="view hidden"><div class="soon"><img src="img/ICON_NOTES.png" alt="" /><p>회의 목록은 다음 단계에서 만들어요.</p></div></section>
+    <!-- ⑤ 회의 목록 -->
+    <section id="page-notes" class="view hidden">
+      <main class="page">
+        <div id="noteListWrap">
+          <h2 class="ptitle">회의 목록</h2>
+          <div id="noteList" class="note-list"></div>
+        </div>
+        <div id="noteDetail" class="detail hidden">
+          <div class="d-top"><button id="noteBack" class="btn ghost">← 목록</button><button class="btn danger d-del">삭제</button></div>
+          <div class="d-body"></div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ⑥ 아직 만들지 않은 화면들 -->
     <section id="page-ai" class="view hidden"><div class="soon"><img src="img/ICON_AI.png" alt="" /><p>AI 요약 목록은 다음 단계에서 만들어요.</p></div></section>
     <section id="page-pdf" class="view hidden"><div class="soon"><img src="img/ICON_PDFList.png" alt="" /><p>PDF 목록은 다음 단계에서 만들어요.</p></div></section>
     <section id="page-setting" class="view hidden"><div class="soon"><img src="img/ICON_SETTING.png" alt="" /><p>설정은 다음 단계에서 만들어요.</p></div></section>
@@ -101,8 +152,10 @@
     </nav>
   </div>
 
+  <script src="js/store.js"></script>
   <script src="js/recorder.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/notes.js"></script>
   <script src="js/home.js"></script>
   <script src="js/splash.js"></script>
 </body>

@@ -1,41 +1,95 @@
 /* =========================================================
-   MeetKNOT.Ai — 1단계: 녹음 테스트 화면
+   MeetKNOT.Ai — 회의준비 화면 · 본 회의(녹음) 화면
    ========================================================= */
 (function () {
+  const MK = window.MK;
   const $ = (id) => document.getElementById(id);
-  const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
-  const STORE = "meetknot_test_paragraphs";
-
-  // ---------- 날짜/시간 ----------
-  function nowText() {
-    const d = new Date();
-    const p = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())}(${DAYS[d.getDay()]})  ${p(d.getHours())}:${p(d.getMinutes())}`;
-  }
-  $("now").textContent = nowText();
-  setInterval(() => ($("now").textContent = nowText()), 30000);
 
   // ---------- 카카오톡 등 앱 안 브라우저 감지 ----------
-  const ua = navigator.userAgent;
-  if (/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua)) {
+  if (/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent)) {
     $("inapp").classList.remove("hidden");
     $("openChrome").href =
       "intent://" + location.host + location.pathname + "#Intent;scheme=https;package=com.android.chrome;end";
   }
 
-  // ---------- 단락 저장 ----------
-  let paras = [];
-  try { paras = JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) {}
-  const save = () => localStorage.setItem(STORE, JSON.stringify(paras));
+  /* ======================= 회의준비 화면 ======================= */
+  let picked = [];
+
+  function renderPeople() {
+    const box = $("pPeople");
+    box.innerHTML = "";
+    MK.people().forEach((name) => {
+      const c = document.createElement("button");
+      c.className = "chip" + (picked.includes(name) ? " on" : "");
+      c.textContent = name;
+      c.onclick = () => {
+        picked = picked.includes(name) ? picked.filter((n) => n !== name) : picked.concat(name);
+        renderPeople();
+      };
+      box.appendChild(c);
+    });
+    const add = document.createElement("button");
+    add.className = "chip add";
+    add.textContent = "+ 추가";
+    add.onclick = () => {
+      const n = (prompt("추가할 참석자 이름을 입력하세요.") || "").trim();
+      if (!n) return;
+      const list = MK.people();
+      if (!list.includes(n)) { list.push(n); MK.savePeople(list); }
+      if (!picked.includes(n)) picked.push(n);
+      renderPeople();
+    };
+    box.appendChild(add);
+  }
+
+  MK.showPrep = () => {
+    $("pTitle").value = "";
+    $("pPlace").value = "";
+    $("pAgenda").value = "";
+    $("pNow").textContent = MK.fmtDate();
+    picked = [];
+    renderPeople();
+  };
+
+  $("pStart").onclick = () => {
+    MK.newMeeting({
+      title: $("pTitle").value,
+      place: $("pPlace").value,
+      attendees: picked.slice(),
+      agenda: $("pAgenda").value,
+    });
+    MK.go("meeting", { direct: true });
+  };
+
+  /* ======================= 본 회의 화면 ======================= */
+  const cur = () => MK.current();
+  const update = (fn) => { const m = cur(); if (!m) return; fn(m); MK.saveCurrent(m); };
+
+  MK.showMeeting = () => {
+    const m = cur();
+    if (!m) return;
+    $("title").value = m.title;
+    $("now").textContent = MK.fmtDate(m.date);
+    const info = [];
+    if (m.place) info.push("장소: " + m.place);
+    if (m.attendees.length) info.push("참석: " + m.attendees.join(", "));
+    $("mInfo").textContent = info.join("  ·  ");
+    $("mAgenda").textContent = m.agenda;
+    $("mAgendaBox").classList.toggle("hidden", !m.agenda);
+    showLive("", "");
+    setStatus("");
+    renderParas();
+  };
+
+  $("title").addEventListener("change", () => update((m) => (m.title = $("title").value.trim() || m.title)));
 
   function renderParas() {
+    const m = cur();
+    const paras = m ? m.paragraphs : [];
     $("count").textContent = paras.length;
     const box = $("paras");
     box.innerHTML = "";
-    if (!paras.length) {
-      box.innerHTML = '<div class="empty">단락 내용</div>';
-      return;
-    }
+    if (!paras.length) { box.innerHTML = '<div class="empty">단락 내용</div>'; return; }
     paras.forEach((p, i) => {
       const el = document.createElement("div");
       el.className = "para";
@@ -47,25 +101,24 @@
         <div class="para-body"></div>`;
       el.querySelector(".para-body").textContent = p.text;
       el.querySelector(".del").onclick = () => {
-        if (confirm("이 단락을 삭제할까요?")) { paras.splice(i, 1); save(); renderParas(); }
+        if (confirm("이 단락을 삭제할까요?")) { update((m) => m.paragraphs.splice(i, 1)); renderParas(); }
       };
       el.querySelector(".edit").onclick = () => editPara(el, i);
       box.appendChild(el);
     });
-    box.scrollTop = box.scrollHeight;
   }
 
   function editPara(el, i) {
     const body = el.querySelector(".para-body");
     const ta = document.createElement("textarea");
     ta.rows = 4;
-    ta.value = paras[i].text;
+    ta.value = cur().paragraphs[i].text;
     body.replaceWith(ta);
     const btn = el.querySelector(".edit");
     btn.textContent = "저장";
     btn.onclick = () => {
       const v = ta.value.trim();
-      if (v) { paras[i].text = v; save(); }
+      if (v) update((m) => (m.paragraphs[i].text = v));
       renderParas();
     };
     ta.focus();
@@ -74,15 +127,11 @@
   function addPara(text, type) {
     text = (text || "").trim();
     if (!text) return;
-    paras.push({ text, type, time: nowText().slice(-5) });
-    save();
+    update((m) => m.paragraphs.push({ text, type, time: MK.hhmm() }));
     renderParas();
   }
 
-  $("addDirect").onclick = () => {
-    addPara($("direct").value, "text");
-    $("direct").value = "";
-  };
+  $("addDirect").onclick = () => { addPara($("direct").value, "text"); $("direct").value = ""; };
 
   // ---------- 실시간 글자 표시 ----------
   const liveFinal = document.querySelector("#liveText .final");
@@ -110,12 +159,18 @@
       $("timer").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
     }, 500);
   }
-  function stopTimer() { clearInterval(tick); }
+  function stopTimer() { clearInterval(tick); $("timer").classList.add("hidden"); }
+
+  // ---------- 진단 줄 ----------
+  function showDiag(d) {
+    $("diag").innerHTML =
+      `<b>진단</b> ${d.mode} · ${d.state} · 재연결 ${d.restarts}회<br>` + d.log.map((l) => "· " + l).join("<br>");
+  }
 
   // ---------- 녹음 ----------
   const rec = new MeetRecorder({
     onText: showLive,
-    onInfo: (m) => setStatus(m),
+    onDiag: showDiag,
     onState: (state, msg) => {
       const on = state === "on";
       $("recBtn").classList.toggle("on", on);
@@ -144,9 +199,21 @@
     busy = false;
   };
 
+  // ---------- 회의 저장 ----------
+  $("saveMeeting").onclick = async () => {
+    if (rec.want) { setStatus("녹음을 먼저 멈춰주세요.", true); return; }
+    const m = cur();
+    if (!m || !m.paragraphs.length) { setStatus("저장할 단락이 없어요. 녹음하거나 직접 입력해 주세요.", true); return; }
+    const ok = await MK.ask("회의 저장", `"${m.title}"\n단락 ${m.paragraphs.length}개를 회의 목록에 저장하고 회의를 마칠까요?`, [
+      { label: "취소", value: false },
+      { label: "저장하고 마치기", value: true, main: true },
+    ]);
+    if (!ok) return;
+    MK.archiveCurrent();
+    MK.go("notes", { direct: true });
+  };
+
   // 다른 화면으로 갈 때 녹음 중인지 확인할 수 있게 공개
   window.meetRec = rec;
   window.meetSetStatus = setStatus;
-
-  renderParas();
 })();

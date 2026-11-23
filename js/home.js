@@ -2,15 +2,22 @@
    MeetKNOT.Ai — 홈 화면 · 화면 이동 · 가운데 번쩍 효과
    ========================================================= */
 (function () {
+  const MK = (window.MK = window.MK || {});
   const $ = (id) => document.getElementById(id);
 
-  // 각 화면에 쓰는 가운데 번쩍 아이콘
   const FLASH = {
+    prep: "img/ICON_MEETING.png",
     meeting: "img/ICON_MEETING.png",
     notes: "img/ICON_NOTES.png",
     ai: "img/ICON_AI.png",
     pdf: "img/ICON_PDFList.png",
     setting: "img/ICON_SETTING.png",
+  };
+  // 화면이 열릴 때 내용을 채우는 함수
+  const ON_SHOW = {
+    prep: () => MK.showPrep && MK.showPrep(),
+    meeting: () => MK.showMeeting && MK.showMeeting(),
+    notes: () => MK.showNotes && MK.showNotes(),
   };
 
   const PITCH =
@@ -27,7 +34,7 @@
   function playHome() {
     document.querySelectorAll(".hi").forEach((el) => {
       el.classList.remove("fly");
-      void el.offsetWidth; // 애니메이션 다시 시작
+      void el.offsetWidth;
       el.classList.add("fly");
     });
     const p = $("pitch");
@@ -37,23 +44,45 @@
     p.classList.remove("done");
     let i = 0;
     setTimeout(function type() {
-      i += 2; // 순식간에 적히도록 두 글자씩
+      i += 2;
       p.textContent = PITCH.slice(0, i);
       if (i < PITCH.length) setTimeout(type, 14);
       else p.classList.add("done");
     }, 700);
   }
 
+  // ---------- 회의 버튼: 진행 중인 회의가 있으면 물어보기 ----------
+  async function enterMeeting() {
+    const m = MK.current();
+    if (!m) return go("prep", { direct: true });
+    if (current === "meeting") return;
+    const n = m.paragraphs.length;
+    const choice = await MK.ask(
+      "진행 중인 회의가 있어요",
+      `"${m.title}"\n단락 ${n}개`,
+      [
+        { label: "새 회의 시작", value: "new" },
+        { label: "이어서 하기", value: "cont", main: true },
+      ]
+    );
+    if (choice === "cont") go("meeting", { direct: true });
+    else { MK.archiveCurrent(); go("prep", { direct: true }); }
+  }
+
   // ---------- 화면 이동 ----------
-  function go(name) {
-    if (busy || name === current) return;
-    // 녹음 중에는 회의 화면을 떠나지 않게
-    if (current === "meeting" && window.meetRec && window.meetRec.want) {
+  function go(name, opts) {
+    opts = opts || {};
+    if (busy) return;
+    if (current === "meeting" && name !== "meeting" && window.meetRec && window.meetRec.want) {
       window.meetSetStatus && window.meetSetStatus("녹음 중이에요. 녹음을 먼저 멈춰주세요.", true);
       return;
     }
+    if (name === "meeting" && !opts.direct) return enterMeeting();
+    if (name === current && !opts.direct) return;
+
     busy = true;
-    document.querySelectorAll(".nav button").forEach((b) => b.classList.toggle("on", b.dataset.go === name));
+    const navKey = name === "prep" ? "meeting" : name;
+    document.querySelectorAll(".nav button").forEach((b) => b.classList.toggle("on", b.dataset.go === navKey));
 
     const show = () => {
       document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
@@ -63,12 +92,12 @@
       v.classList.add("enter");
       window.scrollTo(0, 0);
       current = name;
+      if (ON_SHOW[name]) ON_SHOW[name]();
       if (name === "home") playHome();
     };
 
     if (name === "home" || !FLASH[name]) { show(); busy = false; return; }
 
-    // 가운데 아이콘이 번쩍 나타났다 사라지고 화면이 바뀐다
     const f = $("flash");
     const img = f.querySelector("img");
     img.src = FLASH[name];
@@ -84,7 +113,6 @@
     el.addEventListener("click", () => go(el.dataset.go));
   });
 
-  // 시작 화면이 끝나면 splash.js가 부른다
   window.meetStartHome = () => playHome();
-  window.meetGo = go;
+  MK.go = go;
 })();
