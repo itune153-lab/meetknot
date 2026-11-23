@@ -18,6 +18,8 @@
     prep: () => MK.showPrep && MK.showPrep(),
     meeting: () => MK.showMeeting && MK.showMeeting(),
     notes: () => MK.showNotes && MK.showNotes(),
+    ai: () => MK.showSummaries && MK.showSummaries(),
+    setting: () => MK.showSetting && MK.showSetting(),
   };
 
   const PITCH =

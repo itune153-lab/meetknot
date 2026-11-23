@@ -42,6 +42,7 @@
       <div class="d-sec">회의 내용 (단락 ${m.paragraphs.length}개)</div>
       ${m.paragraphs.map((p, i) => `<div class="d-para"><span>${i + 1}. ${p.time}</span>${esc(p.text)}</div>`).join("")}
     `;
+    d.querySelector(".d-ai").onclick = () => MK.summarize(m);
     d.querySelector(".d-del").onclick = async () => {
       const ok = await MK.ask("회의 삭제", `"${m.title}"을(를) 삭제할까요?\n삭제하면 되돌릴 수 없어요.`, [
         { label: "취소", value: false },

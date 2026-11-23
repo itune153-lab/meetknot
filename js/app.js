@@ -204,13 +204,15 @@
     if (rec.want) { setStatus("녹음을 먼저 멈춰주세요.", true); return; }
     const m = cur();
     if (!m || !m.paragraphs.length) { setStatus("저장할 단락이 없어요. 녹음하거나 직접 입력해 주세요.", true); return; }
-    const ok = await MK.ask("회의 저장", `"${m.title}"\n단락 ${m.paragraphs.length}개를 회의 목록에 저장하고 회의를 마칠까요?`, [
-      { label: "취소", value: false },
-      { label: "저장하고 마치기", value: true, main: true },
+    const choice = await MK.ask("회의 저장", `"${m.title}"\n단락 ${m.paragraphs.length}개를 회의 목록에 저장하고 회의를 마칠까요?`, [
+      { label: "취소", value: "no" },
+      { label: "저장만", value: "save" },
+      { label: "저장 + AI 요약", value: "ai", main: true },
     ]);
-    if (!ok) return;
-    MK.archiveCurrent();
+    if (choice === "no") return;
+    const saved = MK.archiveCurrent();
     MK.go("notes", { direct: true });
+    if (choice === "ai") setTimeout(() => MK.summarize(saved), 800);
   };
 
   // 다른 화면으로 갈 때 녹음 중인지 확인할 수 있게 공개

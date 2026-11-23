@@ -179,3 +179,43 @@ body {
 .m-btns { display: flex; gap: 8px; }
 .m-btns button { flex: 1; padding: 11px; border-radius: 10px; border: 1px solid #cfd5df; background: #fff; font-size: 14px; cursor: pointer; }
 .m-btns button.main { background: #3b6fc4; border-color: #3b6fc4; color: #fff; font-weight: 700; }
+
+/* ===================== 4단계: 설정 · AI 요약 ===================== */
+.set-card { background: #fff; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; border: 2px solid #5b55b0; }
+.set-h { font-weight: 800; font-size: 15px; }
+.set-row { display: flex; gap: 6px; }
+.set-row input { flex: 1; min-width: 0; font-size: 14px; padding: 8px 10px; border: 1px solid #cfd5df; border-radius: 8px; }
+.set-row .btn { align-self: auto; }
+.set-msg { font-size: 13px; color: #2e7d32; }
+.set-msg.err { color: #c0392b; white-space: pre-line; }
+.set-help { font-size: 12px; color: #6b7485; }
+.set-help a { color: #3b6fc4; font-weight: 700; }
+.people-list { display: flex; flex-direction: column; }
+.person { display: flex; justify-content: space-between; align-items: center; padding: 7px 2px; border-bottom: 1px solid #eef1f5; font-size: 14px; }
+.person button { background: none; border: none; color: #c0392b; font-size: 13px; cursor: pointer; }
+.themes { display: flex; gap: 8px; }
+.themes button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border: 2px solid #e3e7ee; border-radius: 12px; background: #fff; font-size: 13px; cursor: pointer; }
+.themes button.on { border-color: #5b55b0; font-weight: 700; }
+.sw { display: block; width: 44px; height: 60px; border-radius: 8px; }
+.sw.wall { background: url("../img/WALL.png") center / cover; }
+.sw.dark { background: linear-gradient(160deg, #0d1018, #2a3346 60%, #3d4a66); }
+.sw.light { background: linear-gradient(160deg, #e9eef7, #f7f9fc 60%, #dfe8f6); }
+
+body.theme-dark { background: linear-gradient(160deg, #0d1018, #2a3346 60%, #3d4a66) fixed; }
+body.theme-light { background: linear-gradient(160deg, #c9d3e3, #eef2f8 55%, #dfe8f6) fixed; }
+body.theme-light .brand, body.theme-light .title, body.theme-light .now, body.theme-light .rec-hint,
+body.theme-light .timer, body.theme-light .ptitle, body.theme-light .row, body.theme-light .lbl,
+body.theme-light .status, body.theme-light .pitch p, body.theme-light .start-btn span { color: #1f2633; text-shadow: none; }
+body.theme-light .title { border-bottom-color: #1f2633; }
+body.theme-light .title::placeholder { color: #5d6678; }
+body.theme-dark .pitch h1 { color: #fff; }
+
+.note-item.ai { border-color: #f2b705; }
+.sum-text { margin-top: 10px; font-size: 14.5px; line-height: 1.75; }
+.d-top span { display: flex; gap: 6px; }
+
+.ai-busy { position: fixed; inset: 0; z-index: 55; background: rgba(10,14,22,.6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #fff; text-align: center; }
+.ai-busy img { width: min(50vw, 220px); animation: aiblink 1s ease-in-out infinite; }
+.ai-busy p { font-weight: 700; font-size: 16px; line-height: 1.6; }
+.ai-busy small { font-weight: 400; opacity: .8; font-size: 12px; }
+@keyframes aiblink { 0%,100% { opacity: 1; transform: scale(1); filter: brightness(1.2) drop-shadow(0 0 24px rgba(255,210,60,.8)); } 50% { opacity: .35; transform: scale(.94); filter: none; } }

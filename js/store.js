@@ -86,3 +86,25 @@
       box.classList.remove("hidden");
     });
 })();
+
+/* ---------- 4단계: API 키 · 요약 목록 · 테마 ---------- */
+(function () {
+  const MK = window.MK;
+  const get = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+  MK.apiKey = () => localStorage.getItem("mk_apikey") || "";
+  MK.setApiKey = (k) => (k ? localStorage.setItem("mk_apikey", k) : localStorage.removeItem("mk_apikey"));
+
+  MK.summaries = () => get("mk_summaries", []);
+  MK.addSummary = (s) => { const l = MK.summaries(); l.unshift(s); set("mk_summaries", l); };
+  MK.deleteSummary = (id) => set("mk_summaries", MK.summaries().filter((x) => x.id !== id));
+
+  MK.theme = () => localStorage.getItem("mk_theme") || "wall";
+  MK.setTheme = (t) => {
+    localStorage.setItem("mk_theme", t);
+    document.body.classList.remove("theme-wall", "theme-dark", "theme-light");
+    document.body.classList.add("theme-" + t);
+  };
+  MK.setTheme(MK.theme());
+})();
