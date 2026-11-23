@@ -115,6 +115,42 @@
     el.addEventListener("click", () => go(el.dataset.go));
   });
 
+  // ---------- 짧은 안내 ----------
+  let toastTimer = null;
+  MK.toast = (t) => {
+    const el = $("toast");
+    el.textContent = t;
+    el.classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.add("hidden"), 2000);
+  };
+
+  // ---------- 폰의 뒤로 버튼 ----------
+  // 앱 안에 기록을 하나 더 만들어 두고, 뒤로 버튼을 누르면 앱이 대신 처리한다
+  const isOpen = (id) => !$(id).classList.contains("hidden");
+  let exitArmed = 0;
+  history.replaceState({ mk: "base" }, "");
+  history.pushState({ mk: "app" }, "");
+
+  window.addEventListener("popstate", () => {
+    const stay = () => history.pushState({ mk: "app" }, "");
+    if (document.getElementById("splash")) return stay();                 // 시작 화면 중
+    if (isOpen("modal") || isOpen("aiBusy")) return stay();               // 질문 창 · 요약 중
+    if (current === "meeting" && window.meetRec && window.meetRec.want) { // 녹음 중
+      window.meetSetStatus && window.meetSetStatus("녹음 중이에요. 녹음을 먼저 멈춰주세요.", true);
+      MK.toast("녹음을 먼저 멈춰주세요");
+      return stay();
+    }
+    if (current === "notes" && isOpen("noteDetail")) { MK.showNotes(); return stay(); }
+    if (current === "ai" && isOpen("sumDetail")) { MK.showSummaries(); return stay(); }
+    if (current !== "home") { busy = false; go("home", { direct: true }); return stay(); }
+    // 홈: 2초 안에 한 번 더 누르면 종료
+    if (Date.now() - exitArmed < 2000) { history.back(); return; }
+    exitArmed = Date.now();
+    MK.toast("한 번 더 누르면 종료돼요");
+    stay();
+  });
+
   window.meetStartHome = () => playHome();
   MK.go = go;
 })();

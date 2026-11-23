@@ -98,37 +98,76 @@ ${m.agenda || "기록 없음"}
 ${body}`;
   }
 
-  async function callGemini(prompt, key) {
+  // 한 모델에 요청 (글이 써지는 대로 onChunk로 전달)
+  async function requestModel(model, prompt, key, gen, onChunk) {
+    const res = await fetch(API + "/" + model + ":streamGenerateContent?alt=sse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: gen }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: false, status: res.status, msg: data.error?.message || "" };
+    }
+    let text = "";
+    const take = (line) => {
+      if (!line.startsWith("data:")) return;
+      try {
+        const j = JSON.parse(line.slice(5).trim());
+        const parts = j.candidates?.[0]?.content?.parts || [];
+        const add = parts.filter((p) => !p.thought).map((p) => p.text || "").join("");
+        if (add) { text += add; onChunk && onChunk(text); }
+      } catch (e) {}
+    };
+    if (res.body && res.body.getReader) {
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop();
+        lines.forEach((l) => take(l.trim()));
+      }
+      take(buf.trim());
+    } else {
+      (await res.text()).split("\n").forEach((l) => take(l.trim()));
+    }
+    return { ok: true, text: text.trim() };
+  }
+
+  async function callGemini(prompt, key, onChunk) {
     const models = await modelOrder(key);
     const errors = [];
     for (const model of models) {
       const gen = { temperature: 0.4, maxOutputTokens: 16384 };
+      // 답하기 전 생각 시간을 짧게 → 더 빠르게
       if (model.startsWith("gemini-2.5")) gen.thinkingConfig = { thinkingBudget: 0 };
-      let res, data;
+      else if (ver(model) >= 3) gen.thinkingConfig = { thinkingLevel: "low" };
+      let r;
       try {
-        res = await fetch(API + "/" + model + ":generateContent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-          body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: gen }),
-        });
-        data = await res.json().catch(() => ({}));
+        r = await requestModel(model, prompt, key, gen, onChunk);
+        // 이 모델이 생각 설정을 모르면 설정 없이 한 번 더
+        if (!r.ok && r.status === 400 && /thinking/i.test(r.msg)) {
+          delete gen.thinkingConfig;
+          r = await requestModel(model, prompt, key, gen, onChunk);
+        }
       } catch (e) {
         errors.push(model + ": 인터넷 연결 문제");
         continue;
       }
-      if (res.ok) {
-        const parts = data.candidates?.[0]?.content?.parts || [];
-        const text = parts.filter((p) => !p.thought).map((p) => p.text || "").join("").trim();
-        if (text) return { text, model };
+      if (r.ok) {
+        if (r.text) return { text: r.text, model };
         errors.push(model + ": 결과가 비어 있음");
         continue;
       }
-      const msg = data.error?.message || "";
-      if (res.status === 400 && /API key not valid|API_KEY_INVALID/i.test(msg)) throw new Error("API 키가 올바르지 않아요. 설정에서 키를 다시 확인해 주세요.");
-      if (res.status === 403) throw new Error("이 API 키로는 Gemini를 쓸 수 없어요. 설정에서 키를 확인해 주세요.\n(" + msg.slice(0, 120) + ")");
-      errors.push(`${model}: ${res.status} ${msg.slice(0, 120)}`);
+      if (r.status === 400 && /API key not valid|API_KEY_INVALID/i.test(r.msg)) throw new Error("API 키가 올바르지 않아요. 설정에서 키를 다시 확인해 주세요.");
+      if (r.status === 403) throw new Error("이 API 키로는 Gemini를 쓸 수 없어요. 설정에서 키를 확인해 주세요.\n(" + r.msg.slice(0, 120) + ")");
+      errors.push(`${model}: ${r.status} ${r.msg.slice(0, 120)}`);
     }
-    delete modelCache[key]; // 다음에는 목록을 새로 받아옴
+    delete modelCache[key];
     const hint = errors.some((e) => /: 429/.test(e))
       ? "\n\n사용량 한도에 걸렸어요. 잠시 뒤 다시 하거나, AI Studio에서 결제 계정을 연결해 주세요."
       : "";
@@ -136,7 +175,8 @@ ${body}`;
   }
 
   // ---------- 요약 중 표시 ----------
-  const busyOn = (on) => $("aiBusy").classList.toggle("hidden", !on);
+  const busyOn = (on) => { $("aiPreview").textContent = ""; $("aiBusy").classList.toggle("hidden", !on); };
+  const preview = (t) => { const p = $("aiPreview"); p.textContent = t; p.scrollTop = p.scrollHeight; };
 
   // 회의 하나를 요약해서 요약 목록에 저장
   MK.summarize = async (meeting) => {
@@ -152,7 +192,9 @@ ${body}`;
     if (!meeting.paragraphs.length) { await MK.ask("요약할 내용이 없어요", "단락이 하나 이상 있어야 요약할 수 있어요.", [{ label: "확인", value: 1, main: true }]); return null; }
     busyOn(true);
     try {
-      const r = await callGemini(buildPrompt(meeting), key);
+      const t0 = Date.now();
+      const r = await callGemini(buildPrompt(meeting), key, preview);
+      const secs = Math.round((Date.now() - t0) / 1000);
       const s = {
         id: "s" + Date.now(),
         meetingId: meeting.id,
@@ -164,7 +206,7 @@ ${body}`;
       };
       MK.addSummary(s);
       busyOn(false);
-      const see = await MK.ask("요약 완료!", `"${meeting.title}" 요약본을 요약 목록에 저장했어요.`, [
+      const see = await MK.ask("요약 완료!", `"${meeting.title}" 요약본을 요약 목록에 저장했어요.\n(${secs}초 걸림)`, [
         { label: "닫기", value: false },
         { label: "요약 보기", value: true, main: true },
       ]);

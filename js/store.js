@@ -108,3 +108,10 @@
   };
   MK.setTheme(MK.theme());
 })();
+
+/* ---------- 5단계: 녹음 방식 ---------- */
+(function () {
+  const MK = window.MK;
+  MK.recMode = () => localStorage.getItem("mk_recmode") || "cont";
+  MK.setRecMode = (m) => localStorage.setItem("mk_recmode", m);
+})();

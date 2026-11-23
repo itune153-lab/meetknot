@@ -18,7 +18,11 @@
   <div id="aiBusy" class="ai-busy hidden">
     <img src="img/ICON_AI.png" alt="" />
     <p>AI가 회의를 요약하고 있어요…<br /><small>회의가 길면 1분쯤 걸릴 수 있어요.</small></p>
+    <div id="aiPreview" class="ai-preview"></div>
   </div>
+
+  <!-- 짧은 안내 -->
+  <div id="toast" class="toast hidden"></div>
 
   <!-- 질문 창 -->
   <div id="modal" class="modal hidden">
@@ -174,6 +178,14 @@
           <div id="keyMsg" class="set-msg"></div>
           <div class="set-help">키는 이 기기에만 저장돼요. 키 받는 곳:
             <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a></div>
+        </div>
+
+        <div class="set-card">
+          <div class="set-h">녹음 방식</div>
+          <div id="recModes" class="modes">
+            <button data-mode="cont"><b>계속 듣기</b><small>잠깐 쉬거나 더듬어도 이어서 들어요. (추천)</small></button>
+            <button data-mode="sentence"><b>문장 단위</b><small>한 문장씩 끊어 들어요. 겹침이 거의 없지만 쉬는 순간 말이 빠질 수 있어요.</small></button>
+          </div>
         </div>
 
         <div class="set-card">

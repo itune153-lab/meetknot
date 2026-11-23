@@ -3,7 +3,7 @@
    - 실시간 글자 표시
    - 같은 문장 반복 방지
    - 끊기면 바로 다시 듣기 (작은 소리로 끊겨도 빨리 복구)
-   - 안드로이드: 한 문장씩 듣고 바로 다시 듣는 안정 모드
+   - 녹음 방식: 계속 듣기(기본) / 문장 단위 (설정에서 선택)
    - 다시 듣기가 3초 안에 안 붙으면 새로 연결
    - 화면 꺼짐 방지, 진단 기록
    ========================================================= */
@@ -71,7 +71,7 @@
       this.log.push(hhmmss() + " " + msg);
       if (this.log.length > 4) this.log.shift();
       this.onDiag({
-        mode: IS_ANDROID ? "안드로이드 안정 모드" : "연속 모드",
+        mode: this.mode === "sentence" ? "문장 단위" : "계속 듣기",
         state: this.want ? (this.live ? "듣는 중" : "연결 중") : "멈춤",
         restarts: this.restarts,
         log: this.log.slice(),
@@ -85,6 +85,7 @@
       }
       if (this.want) return;
       this.want = true;
+      this.mode = (window.MK && MK.recMode && MK.recMode()) || "cont";
       this.committed = "";
       this.sessionFinal = "";
       this.interim = "";
@@ -105,7 +106,7 @@
       const idle = Date.now() - this.lastEvent;
       if (!this.rec) { this.kick(); return; }
       if (!this.live && idle > 3000) { this.note("연결 지연 → 새로 연결"); this.restartNow(); return; }
-      if (this.live && idle > (IS_ANDROID ? 9000 : 15000)) { this.note("응답 없음 → 새로 연결"); this.restartNow(); }
+      if (this.live && idle > 12000) { this.note("응답 없음 → 새로 연결"); this.restartNow(); }
     }
 
     kick() { if (this.want && !this.rec) this.startSession(); }
@@ -151,7 +152,7 @@
     startSession() {
       const r = new SR();
       r.lang = this.lang;
-      r.continuous = !IS_ANDROID;   // 안드로이드는 한 문장씩
+      r.continuous = this.mode !== "sentence";   // 계속 듣기 / 문장 단위
       r.interimResults = true;
       r.maxAlternatives = 1;
       this.rec = r;

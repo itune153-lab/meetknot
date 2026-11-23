@@ -219,3 +219,15 @@ body.theme-dark .pitch h1 { color: #fff; }
 .ai-busy p { font-weight: 700; font-size: 16px; line-height: 1.6; }
 .ai-busy small { font-weight: 400; opacity: .8; font-size: 12px; }
 @keyframes aiblink { 0%,100% { opacity: 1; transform: scale(1); filter: brightness(1.2) drop-shadow(0 0 24px rgba(255,210,60,.8)); } 50% { opacity: .35; transform: scale(.94); filter: none; } }
+
+/* ===================== 5단계: 녹음 방식 · 뒤로 버튼 안내 · 요약 미리보기 ===================== */
+.modes { display: flex; flex-direction: column; gap: 6px; }
+.modes button { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 2px solid #e3e7ee; border-radius: 12px; background: #fff; cursor: pointer; }
+.modes button b { font-size: 14px; }
+.modes button small { font-size: 12px; color: #6b7485; }
+.modes button.on { border-color: #5b55b0; background: #f3f2fc; }
+
+.toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); z-index: 70; background: rgba(20,24,32,.88); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px; white-space: nowrap; }
+
+.ai-preview { width: min(88vw, 440px); max-height: 32vh; overflow-y: auto; background: rgba(255,255,255,.92); color: #1f2633; border-radius: 14px; padding: 10px 12px; font-size: 12.5px; line-height: 1.6; text-align: left; white-space: pre-wrap; }
+.ai-preview:empty { display: none; }

@@ -12,6 +12,7 @@
     $("keyInput").type = "password";
     msg(k ? "키가 저장되어 있어요. (이 기기에만 저장)" : "아직 키가 없어요.");
     renderPeople();
+    document.querySelectorAll("#recModes button").forEach((b) => b.classList.toggle("on", b.dataset.mode === MK.recMode()));
     document.querySelectorAll("#themes button").forEach((b) => b.classList.toggle("on", b.dataset.theme === MK.theme()));
   };
 
@@ -58,6 +59,14 @@
     renderPeople();
   };
   $("personInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("personAdd").click(); });
+
+  // ---------- 녹음 방식 ----------
+  document.querySelectorAll("#recModes button").forEach((b) => {
+    b.onclick = () => {
+      MK.setRecMode(b.dataset.mode);
+      document.querySelectorAll("#recModes button").forEach((x) => x.classList.toggle("on", x === b));
+    };
+  });
 
   // ---------- 테마 ----------
   document.querySelectorAll("#themes button").forEach((b) => {
