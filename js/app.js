@@ -144,10 +144,9 @@
     busy = false;
   };
 
-  // 하단 메뉴 (1단계에서는 아직 준비 중)
-  document.querySelectorAll(".nav button").forEach((b) => {
-    b.onclick = () => { if (b.dataset.go !== "meeting") setStatus("이 메뉴는 다음 단계에서 만들어요."); };
-  });
+  // 다른 화면으로 갈 때 녹음 중인지 확인할 수 있게 공개
+  window.meetRec = rec;
+  window.meetSetStatus = setStatus;
 
   renderParas();
 })();
