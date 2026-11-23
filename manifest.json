@@ -1,0 +1,17 @@
+{
+  "name": "MeetKNOT.Ai",
+  "short_name": "MeetKNOT",
+  "description": "회의를 녹음하면 글자로 받아 적고, AI가 요약해 주는 회의록 앱",
+  "lang": "ko",
+  "start_url": "/?source=home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b2230",
+  "theme_color": "#1b2230",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

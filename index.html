@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1b2230" />
   <title>MeetKNOT.Ai</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="img/icon-192.png" />
+  <link rel="apple-touch-icon" href="img/icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="MeetKNOT" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -63,6 +70,10 @@
              style="--x:74%;--y:58%;--fx:120vw;--fy:40vh;--fr:-220deg;--d:.36s" />
         <img class="hi" data-go="setting" src="img/ICON_SETTING.png" alt="설정"
              style="--x:77%;--y:80%;--fx:-60vw;--fy:70vh;--fr:240deg;--d:.48s" />
+
+        <button id="installBanner" class="install-banner hidden">
+          <img src="img/icon-192.png" alt="" /><span><b>홈 화면에 설치</b><br />아이콘 눌러 바로 실행</span><i>✕</i>
+        </button>
 
         <div class="pitch">
           <h1>MeetKNOT<span>.Ai</span></h1>
@@ -181,6 +192,12 @@
       <main class="page">
         <h2 class="ptitle">설정</h2>
 
+        <div id="installCard" class="set-card install">
+          <div class="set-h">홈 화면에 앱 설치</div>
+          <div id="installText" class="set-help"></div>
+          <button id="installBtn" class="btn hidden">홈 화면에 설치하기</button>
+        </div>
+
         <div class="set-card">
           <div class="set-h">Gemini API 키</div>
           <div class="set-row">
@@ -237,6 +254,8 @@
             <button data-theme="light"><i class="sw light"></i>밝게</button>
           </div>
         </div>
+
+        <div class="version">MeetKNOT.Ai · 버전 <span id="appVer"></span></div>
       </main>
     </section>
 
@@ -257,6 +276,7 @@
   <script src="js/ai.js"></script>
   <script src="js/pdf.js"></script>
   <script src="js/settings.js"></script>
+  <script src="js/install.js"></script>
   <script src="js/home.js"></script>
   <script src="js/splash.js"></script>
 </body>
